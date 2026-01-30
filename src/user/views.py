@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.permissions import AllowAny
 
 from .models import User
 from .serializers import (
@@ -19,6 +20,7 @@ from learnify.utils.response import api_response
 
 
 class UserRegisterView(APIView):
+    permission_classes = [AllowAny]
 
     @swagger_auto_schema(request_body=UserRegisterSerializer)
     def post(
@@ -36,6 +38,7 @@ class UserRegisterView(APIView):
 
 
 class UserLoginView(APIView):
+    permission_classes = [AllowAny]
 
     @swagger_auto_schema(request_body=UserLoginSerializer)
     def post(
