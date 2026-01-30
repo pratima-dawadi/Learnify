@@ -2,12 +2,11 @@ from typing import Any
 
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
+from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
-from rest_framework.viewsets import GenericViewSet
-
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import User
@@ -16,6 +15,7 @@ from .serializers import (
     UserLoginSerializer,
     UserListSerializer,
 )
+from learnify.utils.response import api_response
 
 
 class UserRegisterView(APIView):
@@ -28,14 +28,10 @@ class UserRegisterView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        if not serializer.is_valid():
-            return Response(
-                serializer.errors,
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        return Response(
-            {"message": "User registered successfully"},
-            status=status.HTTP_201_CREATED,
+        return api_response(
+            data=serializer.data,
+            message="User registered successfully",
+            status_code=status.HTTP_201_CREATED,
         )
 
 
@@ -46,19 +42,17 @@ class UserLoginView(APIView):
         self: "UserLoginView", request: Request, *args: Any, **kwargs: Any
     ) -> Response:
         serializer = UserLoginSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(
-                serializer.errors,
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        serializer.is_valid(raise_exception=True)
+
         user = serializer.validated_data["user"]
         refresh = RefreshToken.for_user(user)
-        return Response(
-            {
+        return api_response(
+            data={
                 "refresh": str(refresh),
                 "access": str(refresh.access_token),
             },
-            status=status.HTTP_200_OK,
+            message="User logged in successfully",
+            status_code=status.HTTP_200_OK,
         )
 
 
@@ -73,14 +67,15 @@ class UserListView(APIView):
                 User.objects.all().exclude(is_superuser=True).order_by("-created_at")
             )
             user_data = UserListSerializer(users, many=True).data
-            return Response(
-                {"users": user_data},
-                status=status.HTTP_200_OK,
+            return api_response(
+                data=user_data,
+                message="User list retrieved successfully",
+                status_code=status.HTTP_200_OK,
             )
         except Exception as e:
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            return api_response(
+                message=str(e),
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
 
@@ -93,45 +88,37 @@ class UserDetailView(ListAPIView):
         try:
             user = User.objects.get(id=user_id)
             serializer = self.get_serializer(user)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except User.DoesNotExist:
-            return Response(
-                {"error": "User not found"},
-                status=status.HTTP_404_NOT_FOUND,
+            return api_response(
+                data=serializer.data,
+                message="User retrieved successfully",
+                status_code=status.HTTP_200_OK,
             )
+        except User.DoesNotExist:
+            raise NotFound(detail="User not found")
 
     def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         user_id = kwargs.get("pk")
         try:
             user = User.objects.get(id=user_id)
             user.delete()
-            return Response(
-                {"message": "User deleted successfully"},
-                status=status.HTTP_200_OK,
+            return api_response(
+                message="User deleted successfully",
+                status_code=status.HTTP_200_OK,
             )
         except User.DoesNotExist:
-            return Response(
-                {"error": "User not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            raise NotFound(detail="User not found")
 
     def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         user_id = kwargs.get("pk")
         try:
             user = User.objects.get(id=user_id)
             serializer = UserListSerializer(user, data=request.data, partial=True)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(
-                    {"message": "User updated successfully", "user": serializer.data},
-                    status=status.HTTP_200_OK,
-                )
-            return Response(
-                serializer.errors,
-                status=status.HTTP_400_BAD_REQUEST,
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return api_response(
+                data=serializer.data,
+                message="User updated successfully",
+                status_code=status.HTTP_200_OK,
             )
         except User.DoesNotExist:
-            return Response(
-                {"error": "User not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            raise NotFound(detail="User not found")

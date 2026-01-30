@@ -64,6 +64,10 @@ SWAGGER_SETTINGS = {
     "USE_SESSION_AUTH": False,
 }
 
+REST_FRAMEWORK = {
+    "EXCEPTION_HANDLER": "learnify.utils.response.custom_exception_handler",
+}
+
 ROOT_URLCONF = "learnify.urls"
 
 TEMPLATES = [
