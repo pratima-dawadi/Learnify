@@ -87,7 +87,9 @@ class SpecificCourseAPIView(GenericAPIView):
 
     def get_object(self):
         try:
-            return Course.objects.get(id=self.kwargs["id"], user=self.request.user)
+            if self.request.method == "PATCH":
+                return Course.objects.get(id=self.kwargs["id"], user=self.request.user)
+            return Course.objects.get(id=self.kwargs["id"])
         except Course.DoesNotExist:
             raise NotFound("Course not found.")
 
