@@ -18,6 +18,7 @@ from .serializers import (
 
 from .models import Course, Lesson
 from learnify.utils.response import api_response
+from learnify.utils.pagination import CustomPagination
 from learnify.utils.permission import IsInstructor
 
 
@@ -25,6 +26,7 @@ class CourseAPIView(APIView):
     permission_classes = [IsAuthenticated, IsInstructor]
     ordering_fields = ["-updated_at"]
     sort_by = ["-updated_at"]
+    paginator = CustomPagination()
 
     def get_permissions(self):
         if self.request.method == "GET":
@@ -60,12 +62,17 @@ class CourseAPIView(APIView):
     def get(
         self: "CourseAPIView", request: Request, *args: Any, **kwargs: Any
     ) -> Response:
+        queryset = self.get_queryset()
+        page = self.paginator.paginate_queryset(queryset, request)
 
-        courses = ListCourseSerializer(instance=self.get_queryset(), many=True).data
+        if page is not None:
+            serializer = ListCourseSerializer(page, many=True)
+            return self.paginator.get_paginated_response(serializer.data)
 
+        serializer = ListCourseSerializer(queryset, many=True)
         return api_response(
-            data=courses,
-            message="List of courses",
+            data=serializer.data,
+            message="List of courses retrieved successfully",
             status_code=status.HTTP_200_OK,
         )
 
@@ -121,6 +128,7 @@ class SpecificCourseAPIView(GenericAPIView):
 
 class LessonAPIView(APIView):
     permission_classes = [IsAuthenticated]
+    paginator = CustomPagination()
 
     def get_permissions(self):
         if self.request.method == "GET":
@@ -155,10 +163,16 @@ class LessonAPIView(APIView):
         self: "LessonAPIView", request: Request, *args: Any, **kwargs: Any
     ) -> Response:
 
-        lessons = ListLessonSerializer(instance=self.get_queryset(), many=True).data
+        queryset = self.get_queryset()
 
+        page = self.paginator.paginate_queryset(queryset, request)
+        if page is not None:
+            serializer = ListLessonSerializer(page, many=True)
+            return self.paginator.get_paginated_response(serializer.data)
+
+        serializer = ListLessonSerializer(queryset, many=True)
         return api_response(
-            data=lessons,
+            data=serializer.data,
             message="List of lessons retrieved successfully",
             status_code=status.HTTP_200_OK,
         )

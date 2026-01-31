@@ -10,13 +10,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework import status
 
-from learnify.utils.permission import IsStudent
-
 from .serializers import (
     EnrollmentSerializer,
     EnrollmentListSerializer,
     EnrollmentCompleteSerializer,
 )
+from learnify.utils.pagination import CustomPagination
 from learnify.utils.response import api_response
 from .models import LessonProgress
 from .utils.progress import calculate_enrollment_progress
@@ -24,6 +23,7 @@ from .utils.progress import calculate_enrollment_progress
 
 class EnrollmentAPIView(APIView):
     permission_classes = [IsAuthenticated]
+    paginator = CustomPagination()
 
     @swagger_auto_schema(request_body=EnrollmentSerializer)
     def post(
@@ -46,8 +46,13 @@ class EnrollmentAPIView(APIView):
         self: "EnrollmentAPIView", request: Request, *args: any, **kwargs: any
     ) -> Response:
         enrollments = Enrollment.objects.filter(user=request.user)
-        serializer = EnrollmentListSerializer(enrollments, many=True)
+        page = self.paginator.paginate_queryset(enrollments, request)
 
+        if page is not None:
+            serializer = EnrollmentListSerializer(page, many=True)
+            return self.paginator.get_paginated_response(serializer.data)
+
+        serializer = EnrollmentListSerializer(enrollments, many=True)
         return api_response(
             data=serializer.data,
             message="Enrollments retrieved successfully!",

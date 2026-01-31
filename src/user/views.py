@@ -17,6 +17,7 @@ from .serializers import (
     UserListSerializer,
 )
 from learnify.utils.response import api_response
+from learnify.utils.pagination import CustomPagination
 
 
 class UserRegisterView(APIView):
@@ -60,6 +61,7 @@ class UserLoginView(APIView):
 
 
 class UserListView(APIView):
+    paginator = CustomPagination()
 
     @swagger_auto_schema()
     def get(
@@ -69,10 +71,16 @@ class UserListView(APIView):
             users = (
                 User.objects.all().exclude(is_superuser=True).order_by("-created_at")
             )
-            user_data = UserListSerializer(users, many=True).data
+            page = self.paginator.paginate_queryset(users, request)
+
+            if page is not None:
+                serializer = UserListSerializer(page, many=True)
+                return self.paginator.get_paginated_response(serializer.data)
+
+            serializer = UserListSerializer(users, many=True)
             return api_response(
-                data=user_data,
-                message="User list retrieved successfully",
+                data=serializer.data,
+                message="Users retrieved successfully",
                 status_code=status.HTTP_200_OK,
             )
         except Exception as e:
