@@ -71,7 +71,12 @@ class CourseAPIView(APIView):
 
 
 class SpecificCourseAPIView(GenericAPIView):
-    permission_classes = [IsAuthenticated, IsInstructor]
+    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.request.method == "PATCH":
+            self.permission_classes = [IsAuthenticated, IsInstructor]
+        return super().get_permissions()
 
     def get_object(self):
         try:
