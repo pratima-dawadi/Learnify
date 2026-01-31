@@ -18,6 +18,7 @@ from .serializers import (
 )
 from learnify.utils.response import api_response
 from learnify.utils.pagination import CustomPagination
+from learnify.utils.permission import IsAdmin
 
 
 class UserRegisterView(APIView):
@@ -62,6 +63,7 @@ class UserLoginView(APIView):
 
 class UserListView(APIView):
     paginator = CustomPagination()
+    permission_classes = [IsAdmin]
 
     @swagger_auto_schema()
     def get(
