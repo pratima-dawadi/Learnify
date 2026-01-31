@@ -32,7 +32,6 @@ class Lesson(models.Model):
     title = models.CharField(max_length=255)
     content = models.TextField()
     order = models.PositiveIntegerField()
-    is_completed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
