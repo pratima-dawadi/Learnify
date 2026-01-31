@@ -132,6 +132,7 @@ class SpecificCourseAPIView(GenericAPIView):
             status_code=status.HTTP_200_OK,
         )
 
+    @swagger_auto_schema()
     def get(self, request, *args, **kwargs):
 
         try:
@@ -236,6 +237,7 @@ class SpecificLessonAPIView(GenericAPIView):
             status_code=status.HTTP_200_OK,
         )
 
+    @swagger_auto_schema()
     def get(self, request, *args, **kwargs):
 
         try:

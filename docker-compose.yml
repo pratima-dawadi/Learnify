@@ -23,5 +23,41 @@ services:
     depends_on:
       - db
 
+  celery:
+    build: .
+    command: celery -A learnify worker --loglevel=info
+    volumes:
+      - ./service_account.json:/service_account.json
+    env_file:
+      - ./.env
+    environment:
+      - PYTHONPATH=/code/src
+    depends_on:
+      - db
+      - redis
+
+  celery-beat:
+    build: .
+    command: celery -A learnify beat --loglevel=info
+    volumes:
+      - ./service_account.json:/service_account.json
+    env_file:
+      - ./.env
+    environment:
+      - PYTHONPATH=/code/src
+    depends_on:
+      - db
+      - redis
+
+  redis:
+      image: redis:alpine
+      restart: always
+      ports:
+          - "127.0.0.1:${REDIS_PORT}:6379"
+      volumes:
+          - ./redis.conf:/usr/local/etc/redis/redis.conf
+      command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+
+
 volumes:
   postgres_data:

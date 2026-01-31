@@ -1,4 +1,5 @@
 from .models import Enrollment
+from .tasks import after_enrollment_complete
 
 from django.db import transaction
 from django.utils import timezone
@@ -116,6 +117,9 @@ class EnrollmentCompleteAPIView(APIView):
 
             if total_lessons == completed_lessons:
                 enrollment.mark_completed()
+                after_enrollment_complete.delay(
+                    enrollment.enrolled_at, enrollment.completed_at
+                )
 
         return api_response(
             data=None,

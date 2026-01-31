@@ -1,6 +1,8 @@
 FROM python:3.12-slim
 
 ENV PYTHONUNBUFFERED=1
+ENV CELERY_BROKER_URL=redis://redis:6379/0
+ENV CELERY_RESULT_BACKEND=redis://redis:6379/0
 
 WORKDIR /code
 
