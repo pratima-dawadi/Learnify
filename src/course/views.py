@@ -1,5 +1,7 @@
 from typing import Any
 
+from django_filters.rest_framework import DjangoFilterBackend
+from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound
@@ -7,8 +9,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.generics import GenericAPIView
+from rest_framework.generics import GenericAPIView, ListCreateAPIView
 
+from .filters import CourseFilter, LessonFilter
 from .serializers import (
     AddCourseSerializer,
     ListCourseSerializer,
@@ -22,11 +25,13 @@ from learnify.utils.pagination import CustomPagination
 from learnify.utils.permission import IsInstructor
 
 
-class CourseAPIView(APIView):
+class CourseAPIView(ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsInstructor]
     ordering_fields = ["-updated_at"]
     sort_by = ["-updated_at"]
     paginator = CustomPagination()
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = CourseFilter
 
     def get_permissions(self):
         if self.request.method == "GET":
@@ -58,11 +63,26 @@ class CourseAPIView(APIView):
             status_code=status.HTTP_200_OK,
         )
 
-    @swagger_auto_schema()
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                "is_published",
+                openapi.IN_QUERY,
+                description="Filter by published status",
+                type=openapi.TYPE_BOOLEAN,
+            ),
+        ]
+    )
     def get(
         self: "CourseAPIView", request: Request, *args: Any, **kwargs: Any
     ) -> Response:
         queryset = self.get_queryset()
+        filterset = self.filterset_class(request.GET, queryset=queryset)
+
+        if not filterset.is_valid():
+            return Response(filterset.errors, status=status.HTTP_400_BAD_REQUEST)
+        queryset = filterset.qs
+
         page = self.paginator.paginate_queryset(queryset, request)
 
         if page is not None:
@@ -128,9 +148,11 @@ class SpecificCourseAPIView(GenericAPIView):
         )
 
 
-class LessonAPIView(APIView):
+class LessonAPIView(ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     paginator = CustomPagination()
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = LessonFilter
 
     def get_permissions(self):
         if self.request.method == "GET":
@@ -166,6 +188,10 @@ class LessonAPIView(APIView):
     ) -> Response:
 
         queryset = self.get_queryset()
+        filterset = self.filterset_class(request.GET, queryset=queryset)
+        if not filterset.is_valid():
+            return Response(filterset.errors, status=status.HTTP_400_BAD_REQUEST)
+        queryset = filterset.qs
 
         page = self.paginator.paginate_queryset(queryset, request)
         if page is not None:

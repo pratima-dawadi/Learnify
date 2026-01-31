@@ -2,14 +2,18 @@ from .models import Enrollment
 
 from django.db import transaction
 from django.utils import timezone
+from django_filters.rest_framework import DjangoFilterBackend
+from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.exceptions import NotFound
+from rest_framework.generics import ListCreateAPIView
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework import status
 
+from .filters import EnrollmentFilters
 from .serializers import (
     EnrollmentSerializer,
     EnrollmentListSerializer,
@@ -21,9 +25,11 @@ from .models import LessonProgress
 from .utils.progress import calculate_enrollment_progress
 
 
-class EnrollmentAPIView(APIView):
+class EnrollmentAPIView(ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     paginator = CustomPagination()
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = EnrollmentFilters
 
     @swagger_auto_schema(request_body=EnrollmentSerializer)
     def post(
@@ -41,11 +47,24 @@ class EnrollmentAPIView(APIView):
             status_code=status.HTTP_200_OK,
         )
 
-    @swagger_auto_schema()
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                "is_completed",
+                openapi.IN_QUERY,
+                description="Filter by completed status",
+                type=openapi.TYPE_BOOLEAN,
+            ),
+        ]
+    )
     def get(
         self: "EnrollmentAPIView", request: Request, *args: any, **kwargs: any
     ) -> Response:
         enrollments = Enrollment.objects.filter(user=request.user)
+        filterset = self.filterset_class(request.GET, queryset=enrollments)
+        if not filterset.is_valid():
+            return Response(filterset.errors, status=status.HTTP_400_BAD_REQUEST)
+        enrollments = filterset.qs
         page = self.paginator.paginate_queryset(enrollments, request)
 
         if page is not None:
