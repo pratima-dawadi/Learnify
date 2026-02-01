@@ -55,3 +55,7 @@ class UserListSerializer(serializers.ModelSerializer):
             "role",
             "created_at",
         ]
+
+
+class RefreshTokenSerializer(serializers.Serializer):
+    refresh_token = serializers.CharField()

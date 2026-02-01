@@ -15,6 +15,7 @@ from .serializers import (
     UserRegisterSerializer,
     UserLoginSerializer,
     UserListSerializer,
+    RefreshTokenSerializer,
 )
 from learnify.utils.response import api_response
 from learnify.utils.pagination import CustomPagination
@@ -135,3 +136,32 @@ class UserDetailView(ListAPIView):
             )
         except User.DoesNotExist:
             raise NotFound(detail="User not found")
+
+
+class RefreshTokenView(APIView):
+    permission_classes = [AllowAny]
+
+    @swagger_auto_schema(request_body=RefreshTokenSerializer)
+    def post(
+        self: "RefreshTokenView", request: Request, *args: Any, **kwargs: Any
+    ) -> Response:
+        refresh_token = request.data.get("refresh_token")
+        if not refresh_token:
+            return api_response(
+                message="Refresh token is required",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            refresh = RefreshToken(refresh_token)
+            access_token = str(refresh.access_token)
+            return api_response(
+                data={"access": access_token, "refresh": str(refresh)},
+                message="Access token refreshed successfully",
+                status_code=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            return api_response(
+                message="Invalid refresh token: " + str(e),
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
