@@ -70,3 +70,17 @@ docker compose exec web python manage.py seed_data
 
 
 To be a user, register first and then log in. After logging in, you can access protected endpoints using your access token.
+
+## Running tests
+
+### Run All Tests:
+```bash
+docker compose exec web python manage.py test
+```
+
+### Run Tests for Specific Module:
+```bash
+docker compose exec web python manage.py test enrollment
+docker compose exec web python manage.py test course
+docker compose exec web python manage.py test user
+```
